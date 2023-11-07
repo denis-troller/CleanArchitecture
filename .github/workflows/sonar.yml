@@ -15,6 +15,10 @@ jobs:
         with:
           java-version: 17
           distribution: 'zulu' # Alternative distribution options are available.
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '8.0.100-rc.2.23502.2'          
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
@@ -31,12 +35,25 @@ jobs:
           path: .\.sonar\scanner
           key: ${{ runner.os }}-sonar-scanner
           restore-keys: ${{ runner.os }}-sonar-scanner
+      - name: Cache dotnet-coverage 
+        id: cache-dotnet-coverage
+        uses: actions/cache@v3
+        with:
+          path: .\.sonar\coverage
+          key: ${{ runner.os }}-dotnet-coverage
+          restore-keys: ${{ runner.os }}-dotnet-coverage          
       - name: Install SonarCloud scanner
         if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
         shell: powershell
         run: |
           New-Item -Path .\.sonar\scanner -ItemType Directory
           dotnet tool update dotnet-sonarscanner --tool-path .\.sonar\scanner
+      - name: install coverage tool
+        if: steps.cache-dotnet-coverage.outputs.cache-hit != 'true'
+        shell: powershell
+        run: |
+          New-Item -Path .\.sonar\coverage -ItemType Directory
+          dotnet tool install dotnet-coverage --tool-path .\.sonar\coverage
       - name: Build and analyze
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
